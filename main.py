@@ -23,7 +23,7 @@ def html():
 
 async def get_file_content(file: UploadFile):
     contents = await file.read()
-    text_str = contents.decode("utf-8")
+    text_str = contents.decode("utf-8", errors="replace")
     return text_str
 
 
