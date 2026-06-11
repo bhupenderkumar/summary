@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Agent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+        header { background: #2c3e50; color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+        header h1 { font-size: 20px; }
+        .container { display: flex; flex: 1; overflow: hidden; }
+
+        /* Left panel - Upload & Chat */
+        .left-panel { width: 350px; background: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+
+        /* Upload section */
+        .upload-section { padding: 16px; border-bottom: 1px solid #ddd; }
+        .upload-section h3 { margin-bottom: 10px; color: #2c3e50; }
+        .upload-form { display: flex; flex-direction: column; gap: 10px; }
+        .file-input-wrapper { position: relative; border: 2px dashed #aaa; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.3s; }
+        .file-input-wrapper:hover { border-color: #3498db; }
+        .file-input-wrapper input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .file-input-wrapper span { color: #777; font-size: 14px; }
+        .file-name { font-size: 13px; color: #2c3e50; margin-top: 4px; word-break: break-all; }
+        .upload-btn { background: #3498db; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .upload-btn:hover { background: #2980b9; }
+        .upload-btn:disabled { background: #aaa; cursor: not-allowed; }
+        .user-select { padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; outline: none; }
+        .user-select:focus { border-color: #3498db; }
+        .status { font-size: 13px; color: #666; margin-top: 6px; }
+        .status.error { color: #e74c3c; }
+        .status.success { color: #27ae60; }
+
+        /* Chat section */
+        .chat-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-section h3 { padding: 12px 16px; border-bottom: 1px solid #eee; color: #2c3e50; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 14px; line-height: 1.4; }
+        .chat-msg.user { background: #3498db; color: white; align-self: flex-end; }
+        .chat-msg.bot { background: #ecf0f1; color: #2c3e50; align-self: flex-start; }
+        .chat-input-area { display: flex; padding: 12px; border-top: 1px solid #ddd; gap: 8px; }
+        .chat-input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; }
+        .chat-input-area input:focus { border-color: #3498db; }
+        .chat-input-area button { background: #2c3e50; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; }
+        .chat-input-area button:hover { background: #34495e; }
+
+        /* Right panel - Info divs */
+        .right-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .info-tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; }
+        .info-tabs button { flex: 1; padding: 12px; border: none; background: #fff; cursor: pointer; font-size: 14px; font-weight: bold; color: #777; border-bottom: 3px solid transparent; transition: all 0.2s; }
+        .info-tabs button.active { color: #2c3e50; border-bottom-color: #3498db; }
+        .info-tabs button:hover { background: #f8f9fa; }
+        .info-panels { flex: 1; overflow: hidden; position: relative; }
+        .info-panel { position: absolute; inset: 0; padding: 16px; overflow-y: auto; display: none; }
+        .info-panel.active { display: block; }
+
+        /* Details panel */
+        .detail-item { background: #fff; padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #e0e0e0; }
+        .detail-item label { font-weight: bold; color: #555; font-size: 13px; }
+        .detail-item span { display: block; margin-top: 4px; color: #2c3e50; font-size: 14px; }
+
+        /* Chunks panel */
+        .chunk-card { background: #fff; padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #e0e0e0; }
+        .chunk-card .chunk-header { font-weight: bold; color: #3498db; font-size: 13px; margin-bottom: 6px; }
+        .chunk-card .chunk-text { font-size: 13px; color: #444; white-space: pre-wrap; max-height: 120px; overflow-y: auto; }
+
+        /* Embeddings panel */
+        .embed-card { background: #fff; padding: 12px; border-radius: 6px; margin-bottom: 8px; border: 1px solid #e0e0e0; }
+        .embed-card .embed-header { font-weight: bold; color: #e67e22; font-size: 13px; margin-bottom: 6px; }
+        .embed-card .embed-data { font-size: 11px; color: #666; max-height: 80px; overflow-y: auto; word-break: break-all; }
+
+        .placeholder { text-align: center; color: #aaa; margin-top: 40px; font-size: 14px; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ddd; border-top-color: #3498db; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Document </h1>
+    </header>
+    <div class="container">
+        <!-- Left Panel: Upload + Chat -->
+        <div class="left-panel">
+            <div class="upload-section">
+                <h3> Document Chat</h3>
+                <div class="upload-form">
+                    <div class="file-input-wrapper" id="dropZone">
+                        <input type="file" id="fileInput" accept=".csv,.txt,.pdf,.json">
+                        <span>Drop file here or click to browse</span>
+                    </div>
+                    <div class="file-name" id="fileName"></div>
+                    <button class="upload-btn" id="uploadBtn" disabled>Upload & Process</button>
+                    <div class="status" id="uploadStatus"></div>
+                    <select class="user-select" id="userSelect" disabled>
+                        <option value="">All Users</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chat-section">
+                <h3>Chat</h3>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-msg bot">Upload a file to start chatting about its contents.</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" placeholder="Ask about the PDF..." disabled>
+                    <button id="chatSendBtn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Details / Chunks / Embeddings -->
+        <div class="right-panel">
+            <div class="info-tabs">
+                <button class="active" data-tab="details">Details</button>
+                <button data-tab="chunks">Chunks</button>
+                <button data-tab="embeddings">Embeddings</button>
+            </div>
+            <div class="info-panels">
+                <div class="info-panel active" id="details">
+                    <p class="placeholder">Upload a file to see details</p>
+                </div>
+                <div class="info-panel" id="chunks">
+                    <p class="placeholder">Upload a file to see chunks</p>
+                </div>
+                <div class="info-panel" id="embeddings">
+                    <p class="placeholder">Upload a file to see embeddings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const fileName = document.getElementById('fileName');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const userSelect = document.getElementById('userSelect');
+
+        let pdfData = null;
+
+        // File selection
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileName.textContent = fileInput.files[0].name;
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // Tab switching
+        document.querySelectorAll('.info-tabs button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.info-tabs button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.info-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Upload
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            uploadBtn.disabled = true;
+            uploadStatus.className = 'status';
+            uploadStatus.innerHTML = '<span class="spinner"></span> Processing PDF...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                if (!res.ok) throw new Error(`Server error: ${res.status}`);
+                pdfData = await res.json();
+
+                uploadStatus.className = 'status success';
+                uploadStatus.textContent = 'PDF processed successfully!';
+
+                renderDetails(file, pdfData);
+                renderChunks(pdfData.chunks);
+                renderEmbeddings(pdfData.embeddings);
+                renderUserIds(pdfData.user_ids || []);
+
+                chatInput.disabled = false;
+                chatSendBtn.disabled = false;
+                addChatMsg('bot', 'File loaded! Ask me anything about it.');
+            } catch (err) {
+                uploadStatus.className = 'status error';
+                uploadStatus.textContent = 'Error: ' + err.message;
+            }
+            uploadBtn.disabled = false;
+        });
+
+        // Render details
+        function renderDetails(file, data) {
+            const panel = document.getElementById('details');
+            panel.innerHTML = `
+                <div class="detail-item"><label>File Name</label><span>${file.name}</span></div>
+                <div class="detail-item"><label>File Size</label><span>${(file.size / 1024).toFixed(1)} KB</span></div>
+                <div class="detail-item"><label>Text Length</label><span>${data.text.length} characters</span></div>
+                <div class="detail-item"><label>Total Chunks</label><span>${data.chunks.length}</span></div>
+                <div class="detail-item"><label>Embeddings</label><span>${data.embeddings.length} vectors</span></div>
+                <div class="detail-item"><label>Embedding Dimensions</label><span>${data.embeddings[0] ? data.embeddings[0].length : 'N/A'}</span></div>
+                <div class="detail-item"><label>Unique Users</label><span>${(data.user_ids || []).length}</span></div>
+            `;
+        }
+
+        // Render chunks
+        function renderChunks(chunks) {
+            const panel = document.getElementById('chunks');
+            panel.innerHTML = chunks.map((chunk, i) => `
+                <div class="chunk-card">
+                    <div class="chunk-header">Chunk ${i + 1} (${chunk.length} chars)</div>
+                    <div class="chunk-text">${escapeHtml(chunk)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Render embeddings
+        function renderEmbeddings(embeddings) {
+            const panel = document.getElementById('embeddings');
+            panel.innerHTML = embeddings.map((emb, i) => `
+                <div class="embed-card">
+                    <div class="embed-header">Embedding ${i + 1} (${emb.length} dimensions)</div>
+                    <div class="embed-data">[${emb.slice(0, 20).map(v => v.toFixed(6)).join(', ')}${emb.length > 20 ? ', ...' : ''}]</div>
+                </div>
+            `).join('');
+        }
+
+        // Render user IDs dropdown
+        function renderUserIds(userIds) {
+            userSelect.innerHTML = '<option value="">All Users</option>';
+            userIds.forEach(uid => {
+                const opt = document.createElement('option');
+                opt.value = uid;
+                opt.textContent = uid;
+                userSelect.appendChild(opt);
+            });
+            userSelect.disabled = false;
+        }
+
+        // Chat
+        chatSendBtn.addEventListener('click', sendChat);
+        chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+
+        async function sendChat() {
+            const msg = chatInput.value.trim();
+            if (!msg) return;
+            addChatMsg('user', msg);
+            chatInput.value = '';
+            chatSendBtn.disabled = true;
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg, user_id: userSelect.value })
+                });
+                const data = await res.json();
+                addChatMsg('bot', data.reply || data.message || 'No response');
+            } catch (err) {
+                addChatMsg('bot', 'Error: ' + err.message);
+            }
+            chatSendBtn.disabled = false;
+        }
+
+        function addChatMsg(type, text) {
+            const div = document.createElement('div');
+            div.className = 'chat-msg ' + type;
+            div.textContent = text;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+    </script>
+</body>
+</html>
