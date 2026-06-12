@@ -5,6 +5,7 @@ from fastapi import File, UploadFile
 import os
 import csv
 import io
+import fitz
 from pathlib import Path
 from pydantic import BaseModel
 from llm_provider import LLMProvider
@@ -23,7 +24,13 @@ def html():
 
 async def get_file_content(file: UploadFile):
     contents = await file.read()
-    text_str = contents.decode("utf-8", errors="replace")
+    filename = file.filename or ""
+    if filename.lower().endswith(".pdf"):
+        doc = fitz.open(stream=contents, filetype="pdf")
+        text_str = "\n".join(page.get_text() for page in doc)
+        doc.close()
+    else:
+        text_str = contents.decode("utf-8", errors="replace")
     return text_str
 
 
