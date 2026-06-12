@@ -1,0 +1,58 @@
+I built a full RAG application from scratch — upload a file, ask questions, get AI-powered answers. 
+But here's the thing — this is a simplified version. Let me walk you through what I built AND
+ what you'd actually change for production."
+
+This is File Agent — a FastAPI app that lets you upload any CSV or text file, 
+generates vector embeddings, and lets you chat with your data using LLMs through OpenRouter.
+
+It has a clean web UI, supports user-level filtering, and is deployable to AWS Lambda using Mangum —
+ all in under 200 lines of Python."
+
+
+Here's how the pipeline works:
+
+1. You upload a file — the app chunks it into pieces.
+2. Each chunk gets converted into a vector embedding using OpenAI's text-embedding-3-small model.
+3. When you ask a question, your query also gets embedded.
+4. I use **cosine similarity** to find the top 3 most relevant chunks.
+5. Those chunks become the context for the LLM, which generates a grounded response.
+
+All of this runs **in-memory** — no database, no vector store. Chunks and embeddings are stored in Python lists. 
+Simple, fast, and great for learning the fundamentals."
+
+Now let me be real — this is a demo. If you're deploying RAG in production, here's what changes:"
+
+Chunking Strategy
+
+Right now I'm using **fixed-size chunking with overlap** — 1MB chunks with 100-byte overlap.
+ It works, but it's naive. In production, your chunking strategy depends entirely on your document type and size:
+
+- **Semantic chunking** — split at natural topic boundaries using embeddings
+- **Section/document chunking** — respect the structure of the document (headers, paragraphs, tables)
+- **Recursive chunking** — split by paragraphs first, then sentences, then tokens
+
+There's no one-size-fits-all. A 5-page PDF needs different chunking than a 10,000-row CSV."
+
+Retrieval: Beyond Cosine Similarity
+
+"I'm doing pure vector search here. In production, you'd use:
+
+- **Hybrid search** — combine vector similarity with keyword search (BM25) for better coverage
+- **Reranking** — use a cross-encoder model to re-score your top-K results for precision
+- **Precision and recall metrics** — actually measure how good your retrieval is. 
+Are you finding the right chunks? Are you missing relevant ones?
+
+Vector databases like Pinecone, Weaviate, or Qdrant handle this at scale."
+
+### Prompting Strategy
+
+"My prompt is a simple **zero-shot** approach — just 'here's the context, answer the question.
+' In production, you'd consider:
+
+- **Few-shot prompting** — give the model examples of good answers
+- **Chain-of-thought** — make the model reason step by step before answering
+- **ReAct or tool-use patterns** — let the model decide when to search, filter, or calculate
+- **Prompt versioning** — track and A/B test your prompts like you would code"
+
+"The gap between a demo and production RAG is where the real engineering lives — 
+chunking strategies, retrieval pipelines, evaluation metrics, and prompt engineering.

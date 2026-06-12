@@ -41,9 +41,13 @@ def chunk_text(text):
 
 
 def create_embeddings(text):
-    llm_provider = LLMProvider("openrouter")
-    embedding = llm_provider.create_embedding(text)
-    return embedding
+    try:
+        llm_provider = LLMProvider("openrouter")
+        embedding = llm_provider.create_embedding(text)
+        return embedding
+    except Exception as e:
+        print(f"Embedding error: {e}")
+        return []
 
 # store chunks and their embeddings
 stored_chunks = []
